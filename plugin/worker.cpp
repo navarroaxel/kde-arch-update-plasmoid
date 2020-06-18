@@ -165,6 +165,9 @@ QStringList Worker::getAURHelperCommands(QString AURHelper)
 
 void Worker::checkUpdates(bool namesOnly, bool aur)
 {
+    QProcess externalProcess;
+    QString externalUpdate;
+    QStringList externalResultVector;
 
 	QString aurPackages;
 	QStringList aurResultsVector;
@@ -210,6 +213,30 @@ void Worker::checkUpdates(bool namesOnly, bool aur)
 		else
 			qDebug() << "org.kde.archupdate: cannot start checkupdates-aur";
 	}
+
+    qDebug() << "=========== External ===========";
+    externalProcess.start("/usr/bin/checkupdates-external");
+    if (externalProcess.waitForStarted(-1)) {
+        if (externalProcess.waitForReadyRead(-1)) {
+            if (externalProcess.waitForFinished(-1)) {
+                externalUpdate  = externalProcess.readAllStandardOutput();
+                externalResultVector = externalUpdate.split(((QRegExp) "\n"));
+                externalResultVector.removeAt(externalResultVector.length() - 1);
+                qDebug() << externalResultVector;
+            } else {
+                qDebug() << "org.kde.archupdate: Cannot finish checkupdates-external";
+            }
+        } else {
+            qDebug() << "org.kde.archupdate: external returned nothing. All is up to date. :)";
+        }
+    } else {
+        qDebug() << "org.kde.archupdate: cannot start checkupdates-external";
+    }
+
+    if (externalResultVector.size() > 0) {
+        for (int i = 0; i < externalResultVector.length(); i++)
+            aurResultsVector.push_back(externalResultVector[i]);
+    }
 
 	checkUpdatesProcess.start("/usr/bin/checkupdates");
 
